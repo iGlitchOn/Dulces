@@ -1,0 +1,991 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Control de Inventario - Dulces</title>
+  <style>
+    /* Base reset */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg,#667eea 0%,#764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+      color: #333;
+    }
+
+    /* Container */
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.18);
+      overflow: hidden;
+    }
+
+    .header {
+      background: linear-gradient(135deg,#667eea 0%,#764ba2 100%);
+      color: #fff;
+      padding: 28px 30px;
+      text-align: center;
+    }
+    .header h1 { font-size: 2.2rem; margin-bottom: 6px; }
+    .header p { opacity: 0.95; }
+
+    /* Controls */
+    .controls {
+      padding: 16px;
+      background: #f6f7f9;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    button {
+      border: none;
+      border-radius: 8px;
+      padding: 9px 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.12s ease, box-shadow 0.12s ease, opacity 0.12s ease;
+      font-size: 14px;
+      box-shadow: 0 6px 16px rgba(18,38,63,0.06);
+    }
+    button:active { transform: translateY(1px); }
+
+    .btn-pressed {
+      background: #6c757d !important;
+      color: #fff !important;
+      opacity: 0.95;
+      box-shadow: none !important;
+    }
+
+    .btn-add { background:#2ecc71; color:#fff; }
+    .btn-calculate { background:#2196f3; color:#fff; }
+    .btn-export { background:#20b2aa; color:#fff; }
+    .btn-load { background:#7a42c6; color:#fff; }
+    .btn-provider { background:#ff8a00; color:#fff; }
+    .btn-apply-margin { background:#1abc9c; color:#fff; }
+    .sort-arrow {
+      background: #0b75ff;
+      color: #fff;
+      width: 44px;
+      height: 44px;
+      font-size: 18px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:0;
+      border-radius:8px;
+    }
+
+    .controls select, .controls input[type="number"] {
+      padding:8px;
+      border-radius:8px;
+      border:1px solid #d0d6db;
+      font-size:14px;
+      background: #fff;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.5);
+    }
+
+    .summary {
+      padding: 18px;
+      background: #eef1f5;
+      display: grid;
+      grid-template-columns: repeat(auto-fit,minmax(180px,1fr));
+      gap: 14px;
+    }
+    .summary-card {
+      background: #fff;
+      padding: 14px;
+      border-radius: 10px;
+      box-shadow: 0 6px 18px rgba(10,10,20,0.04);
+    }
+    .summary-card h3 { color:#6c757d; font-size:0.95rem; margin-bottom:6px; }
+    .summary-card .value { font-size:1.6rem; font-weight:700; color:#2f3b45; }
+
+    .table-container {
+      padding: 12px 18px 24px 18px;
+      overflow-x: auto;
+    }
+
+    /* minimal info strip above headers */
+    .values-info {
+      background: rgba(15,23,42,0.02);
+      padding: 10px 12px;
+      border-radius: 8px;
+      margin-bottom: 12px;
+      font-size: 13px;
+      color: #374151;
+      display: flex;
+      gap: 14px;
+      align-items: center;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+      table-layout: auto;
+    }
+
+    th, td {
+      padding: 10px 8px;
+      border-bottom: 1px solid rgba(0,0,0,0.06);
+      vertical-align: middle;
+    }
+
+    th {
+      background: #4f555b;
+      color: #fff;
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      font-weight: 700;
+      font-size: 13px;
+    }
+
+    tr { background: #fff; }
+    tr:hover td { background: #fbfdff; }
+
+    /* Column sizing: tighten columns so price fits */
+    .drag-col { width:48px; text-align:center; }
+    .col-proveedor { width: 150px; }
+    .col-producto { min-width: 260px; max-width: 520px; }
+    .col-unidades { width:90px; }
+    .col-precio { width:100px; }
+    .col-costo { width:110px; }
+    .col-precioventa { width:100px; }
+    .col-ganancia { width:110px; }
+    .col-margen { width:90px; }
+    .col-stock { width:110px; }
+    .col-inversion { width:100px; }
+    .col-gananciatotal { width:100px; }
+
+    .drag-handle {
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      width:36px; height:36px;
+      border-radius:8px;
+      background:#6c757d; color:#fff;
+      cursor:grab; user-select:none; font-size:16px;
+      box-shadow: 0 4px 10px rgba(12,24,40,0.06);
+    }
+    .drag-handle:active { cursor:grabbing; transform: translateY(1px); }
+
+    .proveedor-name {
+      background: #fff;
+      padding: 8px 12px;
+      border-radius: 999px;
+      display: inline-block;
+      font-weight: 700;
+      color: #2b2f33;
+      border: 1px solid rgba(0,0,0,0.04);
+      box-shadow: 0 4px 10px rgba(12,24,40,0.03);
+    }
+
+    .producto-text {
+      display:inline-block;
+      max-width:520px;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      vertical-align:middle;
+      font-size:14px;
+      color:#2b2f33;
+    }
+    .producto-text[title]:hover { cursor:help; }
+
+    input[type="number"], input[type="text"], select, .link-input {
+      padding:6px 8px;
+      border-radius:6px;
+      border:1px solid #d0d6db;
+      font-size:13px;
+      background:#fff;
+      width:100%;
+    }
+    input:focus, select:focus { outline: none; box-shadow:0 0 0 4px rgba(102,126,234,0.06); border-color:#667eea; }
+
+    .money-prefix { font-weight:700; margin-right:6px; color:#2b2f33; }
+
+    .actions-cell { display:flex; gap:8px; align-items:center; justify-content:flex-end; }
+    .link-button {
+      padding:8px 10px;
+      border-radius:8px;
+      background:#0d6efd; color:#fff; font-size:14px;
+      border: none;
+      display:flex; align-items:center; justify-content:center;
+      box-shadow: 0 6px 14px rgba(13,110,253,0.12);
+      cursor:pointer;
+    }
+    .link-button:disabled { background:#c0c6cb; cursor:not-allowed; box-shadow:none; color:#fff; opacity:0.85; }
+    .delete-btn {
+      padding:8px 10px;
+      border-radius:8px; font-size:14px;
+      background:#ef5350; color:#fff; border:none;
+      box-shadow: 0 6px 14px rgba(239,83,80,0.12);
+      cursor:pointer;
+    }
+
+    .profit-positive { color:#198754; font-weight:700; }
+    .profit-negative { color:#b02a37; font-weight:700; }
+
+    .stock-low { background: linear-gradient(90deg, rgba(255,243,205,0.3), rgba(255,243,205,0.18)); }
+    .stock-out { background: linear-gradient(90deg, rgba(255,230,230,0.35), rgba(255,230,230,0.18)); }
+
+    /* header labels replaced with $ sign visually (we'll keep semantics in code) */
+    th.price-symbol { text-align: center; }
+    th.units-label::after { content: " (UND/PAQ)"; font-weight:600; margin-left:4px; font-size:12px; color: rgba(255,255,255,0.9); }
+
+    @media (max-width: 900px) {
+      .producto-text { max-width: 220px; }
+      .actions-cell { gap:6px; }
+    }
+
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>📦 Control de Inventario - Dulces</h1>
+      <p>Sistema de gestión para reventa</p>
+    </div>
+
+    <div class="controls">
+      <button class="btn-add" onclick="markButtonActive(this); showAddProductModal();">➕ Agregar Producto</button>
+      <button class="btn-calculate" onclick="markButtonActive(this); calculateAll();">🔄 Recalcular Todo</button>
+      <button class="btn-export" onclick="markButtonActive(this); exportToCSV();">📊 Exportar CSV</button>
+      <button class="btn-export" onclick="markButtonActive(this); saveDataToFile();">💾 Exportar JSON</button>
+      <button class="btn-load" onclick="markButtonActive(this); loadData();">📂 Cargar Datos</button>
+      <button class="btn-provider" onclick="markButtonActive(this); showProviderModal();">🏢 Gestionar Proveedores</button>
+
+      <input id="margenGlobal" type="number" value="30" min="1" step="0.1" onchange="saveDataToLocalStorage()" style="width:90px;" title="Margen %">
+      <button class="btn-apply-margin" onclick="markButtonActive(this); applyGlobalMargin();">Aplicar Margen</button>
+
+      <div style="display:flex; gap:8px; align-items:center; margin-left:6px;">
+        <select id="sortCategory" title="Selecciona categoría para ordenar">
+          <option value="inversion">Inversión ($)</option>
+          <option value="gananciaTotal">Ganancia Total ($)</option>
+          <option value="proveedor">Proveedor</option>
+          <option value="producto">Producto</option>
+          <option value="unidades">UND/PAQ</option>
+          <option value="precioPaquete">Precio Paquete ($)</option>
+          <option value="precioVenta">Precio Venta ($)</option>
+          <option value="margen">Margen %</option>
+          <option value="stock">Stock Paquetes</option>
+        </select>
+
+        <button id="btnSortToggle" class="sort-arrow" title="Alternar orden" onclick="toggleSort()">↓</button>
+      </div>
+
+      <select id="filterProveedor" onchange="filterTable()" style="margin-left:8px; padding:8px; border-radius:8px;">
+        <option value="">Todos los proveedores</option>
+      </select>
+    </div>
+
+    <div class="summary">
+      <div class="summary-card">
+        <h3>Inversión Total</h3>
+        <div id="totalInversion" class="value">$0</div>
+      </div>
+      <div class="summary-card">
+        <h3>Ganancia Estimada</h3>
+        <div id="totalGanancia" class="value">$0</div>
+      </div>
+      <div class="summary-card">
+        <h3>Margen Promedio</h3>
+        <div id="margenPromedio" class="value">0.0%</div>
+      </div>
+      <div class="summary-card">
+        <h3>Productos en Stock</h3>
+        <div id="productosStock" class="value">0</div>
+      </div>
+    </div>
+
+    <div class="table-container">
+
+      <!-- Info strip indicating which $ refer to package vs unit -->
+      <div class="values-info" aria-hidden="true">
+        <div><strong>$</strong> (cabeceras marcadas con $): valores por paquete</div>
+        <div><strong>Costos y Ganancias</strong>: valores mostrados por unidad</div>
+      </div>
+
+      <table id="inventoryTable">
+        <thead>
+          <tr>
+            <th class="drag-col">☰</th>
+            <th class="col-proveedor">Proveedor</th>
+            <th class="col-producto">Producto</th>
+            <th class="col-unidades units-label">Unid/Paq</th>
+            <th class="col-precio price-symbol">$</th>
+            <th class="col-costo">Costo Unitario</th>
+            <th class="col-precioventa price-symbol">$</th>
+            <th class="col-ganancia">Ganancia Unit.</th>
+            <th class="col-margen">Margen %</th>
+            <th class="col-stock">Stock Paquetes</th>
+            <th class="col-inversion price-symbol">$</th>
+            <th class="col-gananciatotal price-symbol">$</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody">
+          <!-- filas inyectadas por JS -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="autoSaveIndicator" style="position:fixed; right:18px; top:18px; background:#28a745; color:#fff; padding:8px 12px; border-radius:16px; font-size:13px; opacity:0; transition:opacity 0.18s;">💾 Guardado automático</div>
+
+  <!-- Provider modal -->
+  <div id="providerModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:1000;">
+    <div style="width:90%; max-width:700px; margin:40px auto; background:#fff; border-radius:10px; padding:20px;">
+      <span style="float:right; cursor:pointer; font-size:22px;" onclick="closeProviderModal()">&times;</span>
+      <h2>🏢 Gestionar Proveedores</h2>
+      <div style="margin-top:12px; display:flex; gap:10px;">
+        <input id="newProviderName" placeholder="Nombre del proveedor" style="flex:1; padding:10px; border-radius:8px; border:1px solid #d0d6db;">
+        <button class="btn-add" onclick="markButtonActive(this); addProvider();" style="padding:10px 16px;">Agregar</button>
+      </div>
+      <div id="providerList" style="margin-top:14px; max-height:300px; overflow:auto;"></div>
+    </div>
+  </div>
+
+  <!-- Add product modal -->
+  <div id="addProductModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:1000;">
+    <div style="width:92%; max-width:780px; margin:30px auto; background:#fff; border-radius:10px; padding:20px;">
+      <span style="float:right; cursor:pointer; font-size:22px;" onclick="closeAddProductModal()">&times;</span>
+      <h2>➕ Agregar Nuevo Producto</h2>
+      <div style="margin-top:12px;">
+        <label>Proveedor</label>
+        <select id="newProductProvider" style="width:100%; padding:8px; border-radius:8px; margin-top:6px;"></select>
+
+        <label style="margin-top:10px; display:block;">Nombre del Producto</label>
+        <input id="newProductName" placeholder="Nombre del producto" style="width:100%; padding:8px; border-radius:8px;">
+
+        <label style="margin-top:10px; display:block;">Link de Compra</label>
+        <input id="newProductLink" placeholder="https://..." style="width:100%; padding:8px; border-radius:8px;">
+
+        <div style="display:flex; gap:10px; margin-top:10px;">
+          <div style="flex:1;">
+            <label>Unidades por Paquete</label>
+            <input id="newProductUnits" type="number" min="1" value="1" style="width:100%; padding:8px; border-radius:8px;">
+          </div>
+          <div style="flex:1;">
+            <label>Precio del Paquete ($)</label>
+            <input id="newProductPrice" type="number" step="1" min="0" value="0" style="width:100%; padding:8px; border-radius:8px;">
+          </div>
+          <div style="flex:1;">
+            <label>Stock Inicial</label>
+            <input id="newProductStock" type="number" min="0" value="0" style="width:100%; padding:8px; border-radius:8px;">
+          </div>
+        </div>
+
+        <div style="text-align:center; margin-top:16px;">
+          <button class="btn-add" onclick="markButtonActive(this); createNewProduct();" style="padding:10px 24px; margin-right:8px;">Crear Producto</button>
+          <button class="btn-calculate" onclick="markButtonActive(this); closeAddProductModal();" style="padding:10px 24px;">Cancelar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* ---------- Datos ---------- */
+    let proveedores = ["DICOHA","M. DULCES"];
+    let productos = [];
+
+    // Productos iniciales con precios que proporcionaste
+    const productosIniciales = [
+        { proveedor: "DICOHA", producto: "TIC TAC PASTILLITAS ADVENTURE", link: "", unidades: 12, precioPaquete: 24600, precioVenta: 0, stock: 1 },
+        { proveedor: "DICOHA", producto: "CHICLE INDIVIDUAL HIPERACIDO", link: "", unidades: 50, precioPaquete: 11500, precioVenta: 0, stock: 0 },
+        { proveedor: "M. DULCES", producto: "CHICLE ACIDOMETRO", link: "", unidades: 50, precioPaquete: 11700, precioVenta: 0, stock: 0 },
+        { proveedor: "DICOHA", producto: "BARRA BON BON BUM", link: "", unidades: 24, precioPaquete: 8800, precioVenta: 0, stock: 0 },
+        { proveedor: "DICOHA", producto: "ATOMOS REVOLCON", link: "", unidades: 50, precioPaquete: 9000, precioVenta: 0, stock: 0 },
+        { proveedor: "DICOHA", producto: "BRIDGE INDIVIDUAL VAINILLA", link: "", unidades: 30, precioPaquete: 6100, precioVenta: 0, stock: 0 },
+        { proveedor: "DICOHA", producto: "CHICLE AGOGO ÁTOMOS SURTIDO", link: "", unidades: 50, precioPaquete: 8000, precioVenta: 0, stock: 0 },
+        { proveedor: "DICOHA", producto: "CANDYRANCH MORA", link: "", unidades: 24, precioPaquete: 8200, precioVenta: 0, stock: 0 },
+        { proveedor: "M. DULCES", producto: "CIGARROS DE MENTA", link: "", unidades: 20, precioPaquete: 6200, precioVenta: 0, stock: 0 },
+        { proveedor: "DICOHA", producto: "SPLOT ESPANTA OJOS", link: "", unidades: 24, precioPaquete: 4500, precioVenta: 0, stock: 0 },
+        { proveedor: "M. DULCES", producto: "CHICLE SPLOT BOMBA ACIDO LINEA", link: "", unidades: 50, precioPaquete: 8500, precioVenta: 0, stock: 0 }
+    ];
+
+    /* ---------- Guardado local ---------- */
+    function showAutoSave() {
+      const el = document.getElementById('autoSaveIndicator');
+      el.style.opacity = 1;
+      setTimeout(()=> el.style.opacity = 0, 1200);
+    }
+
+    function saveDataToLocalStorage() {
+      const data = { proveedores, productos: getTableData(), margenGlobal: document.getElementById('margenGlobal').value, lastSaved: new Date().toISOString() };
+      try {
+        localStorage.setItem('inventario_dulces', JSON.stringify(data));
+        showAutoSave();
+      } catch (e) { console.warn('No se pudo guardar localmente:', e); }
+    }
+
+    function loadDataFromLocalStorage() {
+      try {
+        const raw = localStorage.getItem('inventario_dulces');
+        if (!raw) return false;
+        const data = JSON.parse(raw);
+        if (data.proveedores && data.productos) {
+          proveedores = data.proveedores;
+          productos = data.productos;
+          updateProviderSelect();
+          loadTableData();
+          if (data.margenGlobal) document.getElementById('margenGlobal').value = data.margenGlobal;
+          return true;
+        }
+      } catch(e) { console.warn('error loading',e); }
+      return false;
+    }
+
+    /* ---------- UI helpers ---------- */
+    function markButtonActive(el, persist = false) {
+      if (!el) return;
+      el.classList.add('btn-pressed');
+      if (!persist) {
+        setTimeout(()=> el.classList.remove('btn-pressed'), 900);
+      }
+    }
+
+    /* ---------- Proveedores ---------- */
+    function updateProviderSelect() {
+      const sel = document.getElementById('filterProveedor');
+      sel.innerHTML = '<option value="">Todos los proveedores</option>';
+      proveedores.forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p;
+        opt.textContent = p;
+        sel.appendChild(opt);
+      });
+      updateNewProductProviderSelect();
+    }
+
+    function updateProviderList() {
+      const list = document.getElementById('providerList');
+      list.innerHTML = '';
+      proveedores.forEach(p => {
+        const item = document.createElement('div');
+        item.style.display = 'flex';
+        item.style.justifyContent = 'space-between';
+        item.style.alignItems = 'center';
+        item.style.padding = '8px';
+        item.style.marginBottom = '8px';
+        item.style.border = '1px solid #e6e9ee';
+        item.style.borderRadius = '8px';
+        item.innerHTML = `<div>${p}</div><div><button class="delete-btn" onclick="markButtonActive(this); removeProvider('${p}')">Eliminar</button></div>`;
+        list.appendChild(item);
+      });
+    }
+
+    function addProvider() {
+      const name = document.getElementById('newProviderName').value.trim();
+      if (!name) { alert('Ingresa un nombre válido'); return; }
+      if (proveedores.includes(name)) { alert('Proveedor ya existe'); return; }
+      proveedores.push(name);
+      updateProviderSelect();
+      updateProviderList();
+      document.getElementById('newProviderName').value = '';
+      saveDataToLocalStorage();
+    }
+
+    function removeProvider(name) {
+      if (!confirm(`¿Eliminar proveedor "${name}"?`)) return;
+      proveedores = proveedores.filter(p => p !== name);
+      updateProviderSelect();
+      updateProviderList();
+      document.querySelectorAll('#tableBody tr').forEach(tr => {
+        const pn = tr.querySelector('.proveedor-name');
+        if (pn && pn.textContent === name) pn.textContent = proveedores[0] || '';
+      });
+      saveDataToLocalStorage();
+    }
+
+    /* ---------- Modal / add product ---------- */
+    function showProviderModal() { document.getElementById('providerModal').style.display = 'block'; updateProviderList(); }
+    function closeProviderModal() { document.getElementById('providerModal').style.display = 'none'; }
+
+    function showAddProductModal() {
+      document.getElementById('addProductModal').style.display = 'block';
+      updateNewProductProviderSelect();
+    }
+    function closeAddProductModal() {
+      document.getElementById('addProductModal').style.display = 'none';
+      ['newProductName','newProductLink','newProductUnits','newProductPrice','newProductStock'].forEach(id=>{
+        const el=document.getElementById(id); if (el) el.value = (id==='newProductUnits'?1:0);
+      });
+    }
+
+    function updateNewProductProviderSelect() {
+      const sel = document.getElementById('newProductProvider');
+      if (!sel) return;
+      sel.innerHTML = '';
+      proveedores.forEach(p=>{
+        const o = document.createElement('option'); o.value = p; o.textContent = p; sel.appendChild(o);
+      });
+    }
+
+    function createNewProduct() {
+      const proveedor = document.getElementById('newProductProvider').value;
+      const producto = document.getElementById('newProductName').value.trim();
+      const link = document.getElementById('newProductLink').value.trim();
+      const unidades = parseInt(document.getElementById('newProductUnits').value) || 1;
+      const precioPaquete = parseFloat(document.getElementById('newProductPrice').value) || 0;
+      const stock = parseInt(document.getElementById('newProductStock').value) || 0;
+      if (!producto) { alert('Ingrese nombre del producto'); return; }
+      addRowWithData({proveedor, producto, link, unidades, precioPaquete, precioVenta:0, stock}, true);
+      closeAddProductModal();
+      saveDataToLocalStorage();
+    }
+
+    /* ---------- Table helpers ---------- */
+    function getTableData() {
+      const rows = Array.from(document.querySelectorAll('#tableBody tr'));
+      return rows.map(row => {
+        const proveedor = row.querySelector('.proveedor-name')?.textContent || '';
+        const producto = (row.querySelector('.producto-input')?.value || row.querySelector('.producto-text')?.textContent || '').trim();
+        const link = row.querySelector('.link-input')?.value || '';
+        const unidades = parseFloat(row.querySelector('.unidades-input')?.value) || 0;
+        const precioPaquete = parseFloat(row.querySelector('.precio-paquete-input')?.value) || 0;
+        const precioVenta = parseFloat(row.querySelector('.precio-venta-input')?.value) || 0;
+        const stock = parseFloat(row.querySelector('.stock-paquetes-input')?.value) || 0;
+        return { proveedor, producto, link, unidades, precioPaquete, precioVenta, stock };
+      }).filter(p=>p.producto);
+    }
+
+    function loadTableData() {
+      const tbody = document.getElementById('tableBody');
+      tbody.innerHTML = '';
+      const list = productos.length? productos : productosIniciales;
+      list.forEach(p=> addRowWithData(p,false));
+      calculateAll();
+      adjustProductColumnWidth();
+    }
+
+    function addRowWithData(data, isNew = false) {
+      const tbody = document.getElementById('tableBody');
+      const row = document.createElement('tr');
+      row.draggable = true;
+      row.addEventListener('dragstart', dragStart);
+      row.addEventListener('dragend', dragEnd);
+
+      const locked = !isNew && data.producto && data.producto.trim() !== '';
+
+      row.innerHTML = `
+                <td class="drag-col"><div class="drag-handle" title="Arrastrar">☰</div></td>
+                <td><div class="proveedor-name">${escapeHtml(data.proveedor || '')}</div></td>
+                <td>
+                    <div class="producto-text" ondblclick="editProductName(this)" title="${escapeHtml(data.producto || 'Nombre del producto')}">${escapeHtml(data.producto || 'Nombre del producto')}</div>
+                    <input class="producto-input" type="text" value="${escapeHtml(data.producto || '')}" placeholder="Nombre del producto" style="display:none;" ${locked? 'readonly':''}>
+                </td>
+                <td class="col-unidades" style="width:90px;"><input class="unidades-input" type="number" min="1" value="${data.unidades || 1}" ${locked? 'readonly':''}></td>
+                <td class="col-precio" style="width:100px;">
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <span class="money-prefix">$</span>
+                        <input class="precio-paquete-input" type="number" step="1" min="0" value="${Math.round(data.precioPaquete||0)}">
+                    </div>
+                </td>
+                <td class="col-costo costo-unitario" style="width:110px;">$0</td>
+                <td class="col-precioventa" style="width:100px;">
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <span class="money-prefix">$</span>
+                        <input class="precio-venta-input" type="number" step="1" min="0" value="${Math.round(data.precioVenta||0)}">
+                    </div>
+                </td>
+                <td class="col-ganancia ganancia-unitaria" style="width:110px;">$0</td>
+                <td class="col-margen margen" style="width:90px;">0.0%</td>
+                <td class="col-stock" style="width:110px;"><input class="stock-paquetes-input" type="number" min="0" value="${data.stock||0}"></td>
+                <td class="col-inversion inversion" style="width:100px;">$0</td>
+                <td class="col-gananciatotal ganancia-total" style="width:100px;">$0</td>
+                <td>
+                    <div class="actions-cell">
+                        <button class="link-button" onclick="openLink(this)" ${data.link? '': ''}>🔗</button>
+                        <input class="link-input" type="url" value="${escapeHtml(data.link || '')}" placeholder="https://..." style="display:none; width:240px;">
+                        <button class="delete-btn" onclick="markButtonActive(this); deleteRow(this)">🗑️</button>
+                    </div>
+                </td>
+            `;
+
+      row.querySelectorAll('input').forEach(el=>{
+        el.addEventListener('change', (e)=>{
+          if (el.classList.contains('unidades-input') || el.classList.contains('precio-paquete-input') || el.classList.contains('precio-venta-input') || el.classList.contains('stock-paquetes-input')) {
+            calculateRow(el);
+          }
+          if (el.classList.contains('link-input')) updateLinkButton(el);
+          checkAndLockFields(el);
+          saveDataToLocalStorage();
+        });
+      });
+
+      const handle = row.querySelector('.drag-handle');
+      if (handle) {
+        handle.addEventListener('pointerdown', ()=> handle.classList.add('btn-pressed'));
+        handle.addEventListener('pointerup', ()=> setTimeout(()=> handle.classList.remove('btn-pressed'), 140));
+      }
+
+      const linkInput = row.querySelector('.link-input');
+      if (linkInput) linkInput.style.display = 'none';
+      const linkBtn = row.querySelector('.link-button');
+      if (linkBtn) linkBtn.disabled = !(data.link && data.link.trim());
+
+      tbody.appendChild(row);
+      calculateRow(row.querySelector('.precio-paquete-input') || row.querySelector('.unidades-input'));
+    }
+
+    function escapeHtml(s) {
+      if (!s && s !== 0) return '';
+      return String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;');
+    }
+
+    function deleteRow(btn) {
+      if (!confirm('¿Eliminar producto?')) return;
+      btn.closest('tr').remove();
+      calculateAll();
+      saveDataToLocalStorage();
+    }
+
+    function updateLinkButton(input) {
+      const row = input.closest('tr');
+      const btn = row.querySelector('.link-button');
+      btn.disabled = !input.value.trim();
+    }
+
+    function editProductName(textEl) {
+      const tr = textEl.closest('tr');
+      const input = tr.querySelector('.producto-input');
+      textEl.style.display = 'none';
+      input.style.display = 'block';
+      input.focus();
+      input.select();
+      const save = () => {
+        const newText = input.value.trim() || 'Nombre del producto';
+        textEl.textContent = newText;
+        textEl.title = newText;
+        textEl.style.display = 'inline-block';
+        input.style.display = 'none';
+        checkAndLockFields(input);
+        adjustProductColumnWidth();
+        saveDataToLocalStorage();
+      };
+      input.addEventListener('blur', save, { once: true });
+      input.addEventListener('keypress', function(e) { if (e.key === 'Enter') save(); }, { once: true });
+    }
+
+    function checkAndLockFields(el) {
+      const tr = el.closest('tr');
+      const proveedor = tr.querySelector('.proveedor-name')?.textContent || '';
+      const producto = (tr.querySelector('.producto-input')?.value || tr.querySelector('.producto-text')?.textContent || '').trim();
+      const unidades = tr.querySelector('.unidades-input')?.value || '';
+      if (proveedor && producto && unidades) {
+        ['.producto-input','.link-input','.unidades-input'].forEach(sel=>{
+          const f = tr.querySelector(sel);
+          if (f) { f.disabled = true; f.readOnly = true; f.classList.add('field-locked'); }
+        });
+      }
+    }
+
+    function calculateRow(inputEl) {
+      const row = inputEl.closest('tr');
+      const unidades = Math.round(parseFloat(row.querySelector('.unidades-input')?.value) || 0);
+      const precioPaquete = Math.round(parseFloat(row.querySelector('.precio-paquete-input')?.value) || 0);
+      const precioVenta = Math.round(parseFloat(row.querySelector('.precio-venta-input')?.value) || 0);
+      const stockPaquetes = Math.round(parseFloat(row.querySelector('.stock-paquetes-input')?.value) || 0);
+
+      const costoUnitario = unidades > 0 ? precioPaquete / unidades : 0;
+      const gananciaUnitaria = precioVenta - costoUnitario;
+      const margen = costoUnitario > 0 ? (gananciaUnitaria / costoUnitario) * 100 : 0;
+      const inversion = stockPaquetes * precioPaquete;
+      const gananciaTotal = Math.round((stockPaquetes * unidades) * gananciaUnitaria);
+
+      row.querySelector('.costo-unitario').textContent = `$${Math.round(costoUnitario)}`;
+      const gu = row.querySelector('.ganancia-unitaria');
+      gu.textContent = `$${Math.round(gananciaUnitaria)}`;
+      gu.className = gananciaUnitaria >= 0 ? 'ganancia-unitaria profit-positive' : 'ganancia-unitaria profit-negative';
+
+      const mg = row.querySelector('.margen');
+      mg.textContent = `${margen.toFixed(1)}%`;
+      mg.className = margen >= 0 ? 'margen profit-positive' : 'margen profit-negative';
+
+      row.querySelector('.inversion').textContent = `$${Math.round(inversion)}`;
+      const gt = row.querySelector('.ganancia-total');
+      gt.textContent = `$${Math.round(gananciaTotal)}`;
+      gt.className = gananciaTotal >= 0 ? 'ganancia-total profit-positive' : 'ganancia-total profit-negative';
+
+      if (stockPaquetes === 0) {
+        row.classList.add('stock-out'); row.classList.remove('stock-low');
+      } else if (stockPaquetes <= 2) {
+        row.classList.add('stock-low'); row.classList.remove('stock-out');
+      } else {
+        row.classList.remove('stock-low','stock-out');
+      }
+
+      updateSummary();
+      saveDataToLocalStorage();
+    }
+
+    function calculateAll() {
+      document.querySelectorAll('#tableBody tr').forEach(tr=>{
+        const anyInput = tr.querySelector('.precio-paquete-input') || tr.querySelector('.unidades-input') || tr.querySelector('.precio-venta-input');
+        if (anyInput) calculateRow(anyInput);
+      });
+    }
+
+    function updateSummary() {
+      let totalInv = 0, totalGan = 0, prodStock = 0, sumMarg = 0, cntMarg = 0;
+      document.querySelectorAll('#tableBody tr').forEach(tr=>{
+        const inv = parseFloat((tr.querySelector('.inversion')?.textContent || '$0').replace('$','')) || 0;
+        const gan = parseFloat((tr.querySelector('.ganancia-total')?.textContent || '$0').replace('$','')) || 0;
+        const stock = parseFloat(tr.querySelector('.stock-paquetes-input')?.value) || 0;
+        const margen = parseFloat((tr.querySelector('.margen')?.textContent || '0').replace('%','')) || 0;
+        totalInv += Math.round(inv); totalGan += Math.round(gan);
+        if (stock > 0) { prodStock++; sumMarg += margen; cntMarg++; }
+      });
+      const margProm = cntMarg? (sumMarg / cntMarg): 0;
+      document.getElementById('totalInversion').textContent = `$${Math.round(totalInv)}`;
+      const tgEl = document.getElementById('totalGanancia');
+      tgEl.textContent = `$${Math.round(totalGan)}`;
+      tgEl.className = totalGan >= 0 ? 'value profit-positive' : 'value profit-negative';
+      document.getElementById('margenPromedio').textContent = `${margProm.toFixed(1)}%`;
+      document.getElementById('productosStock').textContent = prodStock;
+    }
+
+    /* ---------- Sorting (single toggle button with arrows) ---------- */
+    let currentSortDirection = 'desc';
+    function toggleSort() {
+      currentSortDirection = currentSortDirection === 'desc' ? 'asc' : 'desc';
+      document.getElementById('btnSortToggle').textContent = currentSortDirection === 'desc' ? '↓' : '↑';
+      const column = document.getElementById('sortCategory').value || 'inversion';
+      sortTable(column, currentSortDirection);
+    }
+
+    function sortTable(column, forceDirection = null) {
+      const tbody = document.getElementById('tableBody');
+      const rows = Array.from(tbody.querySelectorAll('tr'));
+      const dir = forceDirection || currentSortDirection;
+      const collator = new Intl.Collator('es', { numeric:true, sensitivity:'base' });
+
+      rows.sort((a,b) => {
+        let av, bv;
+        switch(column) {
+          case 'proveedor': av = a.querySelector('.proveedor-name').textContent; bv = b.querySelector('.proveedor-name').textContent; break;
+          case 'producto': av = a.querySelector('.producto-text').textContent; bv = b.querySelector('.producto-text').textContent; break;
+          case 'unidades': av = parseFloat(a.querySelector('.unidades-input').value)||0; bv = parseFloat(b.querySelector('.unidades-input').value)||0; break;
+          case 'precioPaquete': av = parseFloat(a.querySelector('.precio-paquete-input').value)||0; bv = parseFloat(b.querySelector('.precio-paquete-input').value)||0; break;
+          case 'costoUnitario': av = parseFloat(a.querySelector('.costo-unitario').textContent.replace('$',''))||0; bv = parseFloat(b.querySelector('.costo-unitario').textContent.replace('$',''))||0; break;
+          case 'precioVenta': av = parseFloat(a.querySelector('.precio-venta-input').value)||0; bv = parseFloat(b.querySelector('.precio-venta-input').value)||0; break;
+          case 'gananciaUnitaria': av = parseFloat(a.querySelector('.ganancia-unitaria').textContent.replace('$',''))||0; bv = parseFloat(b.querySelector('.ganancia-unitaria').textContent.replace('$',''))||0; break;
+          case 'margen': av = parseFloat(a.querySelector('.margen').textContent.replace('%',''))||0; bv = parseFloat(b.querySelector('.margen').textContent.replace('%',''))||0; break;
+          case 'stock': av = parseFloat(a.querySelector('.stock-paquetes-input').value)||0; bv = parseFloat(b.querySelector('.stock-paquetes-input').value)||0; break;
+          case 'inversion': av = parseFloat(a.querySelector('.inversion').textContent.replace('$',''))||0; bv = parseFloat(b.querySelector('.inversion').textContent.replace('$',''))||0; break;
+          case 'gananciaTotal': av = parseFloat(a.querySelector('.ganancia-total').textContent.replace('$',''))||0; bv = parseFloat(b.querySelector('.ganancia-total').textContent.replace('$',''))||0; break;
+          default: return 0;
+        }
+        if (typeof av === 'string') {
+          return dir === 'asc' ? collator.compare(av,bv) : collator.compare(bv,av);
+        } else {
+          return dir === 'asc' ? av - bv : bv - av;
+        }
+      });
+
+      rows.forEach(r => tbody.appendChild(r));
+      saveDataToLocalStorage();
+    }
+
+    /* ---------- Drag & Drop (no illumination) ---------- */
+    let draggedRow = null;
+    function dragStart(e) {
+      draggedRow = e.currentTarget;
+      e.dataTransfer.effectAllowed = 'move';
+      try { e.dataTransfer.setData('text/plain', 'drag'); } catch (err) {}
+      draggedRow.style.opacity = '0.5';
+    }
+
+    function dragOver(e) { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; }
+    function dragEnter(e) {
+      const tr = e.target.closest('tr');
+      if (tr && tr !== draggedRow) tr.style.backgroundColor = '#f6f9fc';
+    }
+    function dragLeave(e) {
+      const tr = e.target.closest('tr');
+      if (tr) tr.style.backgroundColor = '';
+    }
+    function drop(e) {
+      e.preventDefault();
+      const target = e.target.closest('tr');
+      if (!target || !draggedRow || target === draggedRow) return;
+      const tbody = target.parentElement;
+      const rect = target.getBoundingClientRect();
+      const midpoint = rect.top + rect.height/2;
+      if (e.clientY < midpoint) tbody.insertBefore(draggedRow, target);
+      else tbody.insertBefore(draggedRow, target.nextSibling);
+
+      draggedRow.style.opacity = '';
+      Array.from(document.querySelectorAll('#tableBody tr')).forEach(r => r.style.backgroundColor = '');
+      saveDataToLocalStorage();
+      draggedRow = null;
+    }
+    function dragEnd(e) {
+      if (draggedRow) draggedRow.style.opacity = '';
+      draggedRow = null;
+    }
+
+    function initDragAndDrop() {
+      const tbody = document.getElementById('tableBody');
+      tbody.addEventListener('dragover', dragOver);
+      tbody.addEventListener('drop', drop);
+      tbody.addEventListener('dragenter', dragEnter);
+      tbody.addEventListener('dragleave', dragLeave);
+    }
+
+    function adjustProductColumnWidth() {
+      const texts = document.querySelectorAll('.producto-text');
+      let maxw = 200;
+      texts.forEach(t=>{
+        const span = document.createElement('span');
+        span.style.visibility='hidden'; span.style.position='absolute';
+        span.style.whiteSpace='nowrap'; span.style.fontSize='14px';
+        span.textContent = t.textContent || '';
+        document.body.appendChild(span);
+        const w = span.offsetWidth;
+        document.body.removeChild(span);
+        if (w+40 > maxw) maxw = Math.min(w+40, 900);
+      });
+      const th = document.querySelector('#inventoryTable th:nth-child(3)');
+      if (th) th.style.minWidth = maxw + 'px';
+    }
+
+    function exportToCSV() {
+      let csv = 'Proveedor,Producto,Link,Unid/Paq,PrecioPaquete,CostoUnitario,PrecioVenta,GananciaUnitaria,Margen,StockPaquetes,Inversion,GananciaTotal\n';
+      document.querySelectorAll('#tableBody tr').forEach(tr=>{
+        const proveedor = (tr.querySelector('.proveedor-name')?.textContent || '').replace(/"/g,'""');
+        const producto = (tr.querySelector('.producto-text')?.textContent || '').replace(/"/g,'""');
+        const link = (tr.querySelector('.link-input')?.value || '').replace(/"/g,'""');
+        const unidades = tr.querySelector('.unidades-input')?.value || 0;
+        const precioPaquete = tr.querySelector('.precio-paquete-input')?.value || 0;
+        const costoUnitario = tr.querySelector('.costo-unitario')?.textContent.replace('$','') || 0;
+        const precioVenta = tr.querySelector('.precio-venta-input')?.value || 0;
+        const gananciaUnit = tr.querySelector('.ganancia-unitaria')?.textContent.replace('$','') || 0;
+        const margen = tr.querySelector('.margen')?.textContent || '0%';
+        const stock = tr.querySelector('.stock-paquetes-input')?.value || 0;
+        const inversion = tr.querySelector('.inversion')?.textContent.replace('$','') || 0;
+        const ganTotal = tr.querySelector('.ganancia-total')?.textContent.replace('$','') || 0;
+        csv += `"${proveedor}","${producto}","${link}",${unidades},${precioPaquete},${costoUnitario},${precioVenta},${gananciaUnit},"${margen}",${stock},${inversion},${ganTotal}\n`;
+      });
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = 'inventario_dulces.csv'; a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function saveDataToFile() {
+      const data = { proveedores, productos: getTableData(), margenGlobal: document.getElementById('margenGlobal').value, lastSaved: new Date().toISOString() };
+      const blob = new Blob([JSON.stringify(data,null,2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = 'inventario_dulces.json'; a.click();
+      URL.revokeObjectURL(url);
+      alert('Datos exportados a inventario_dulces.json');
+    }
+
+    function loadData() {
+      const input = document.createElement('input'); input.type = 'file'; input.accept = '.json';
+      input.onchange = e => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = ev => {
+          try {
+            const data = JSON.parse(ev.target.result);
+            if (data.proveedores && data.productos) {
+              proveedores = data.proveedores; productos = data.productos;
+              updateProviderSelect(); loadTableData();
+              if (data.margenGlobal) document.getElementById('margenGlobal').value = data.margenGlobal;
+              saveDataToLocalStorage();
+              alert('Datos importados correctamente');
+            } else {
+              alert('Formato inválido');
+            }
+          } catch(err) { alert('Error leyendo archivo: '+err.message); }
+        };
+        reader.readAsText(file);
+      };
+      input.click();
+    }
+
+    function filterTable() {
+      const v = document.getElementById('filterProveedor').value.toUpperCase();
+      document.querySelectorAll('#tableBody tr').forEach(tr=>{
+        const val = (tr.querySelector('.proveedor-name')?.textContent || '').toUpperCase();
+        tr.style.display = (!v || val === v) ? '' : 'none';
+      });
+    }
+
+    window.openLink = function(button) {
+      const row = button.closest('tr');
+      const linkInput = row.querySelector('.link-input');
+      const link = (linkInput?.value || '').trim();
+      if (!link) {
+        linkInput.style.display = 'block';
+        linkInput.focus();
+        linkInput.addEventListener('blur', function() {
+          linkInput.style.display = 'none';
+          updateLinkButton(linkInput);
+          saveDataToLocalStorage();
+        }, { once: true });
+        linkInput.addEventListener('keypress', function(e) {
+          if (e.key === 'Enter') {
+            linkInput.style.display = 'none';
+            updateLinkButton(linkInput);
+            saveDataToLocalStorage();
+          }
+        }, { once: true });
+        return;
+      }
+      const url = link.startsWith('http://') || link.startsWith('https://') ? link : 'https://'+link;
+      window.open(url, '_blank');
+    };
+
+    function init() {
+      if (!loadDataFromLocalStorage()) {
+        updateProviderSelect();
+        loadTableData();
+      }
+      initDragAndDrop();
+      adjustProductColumnWidth();
+      document.getElementById('btnSortToggle').textContent = '↓';
+    }
+
+    init();
+
+    window.showAddProductModal = showAddProductModal;
+    window.showProviderModal = showProviderModal;
+    window.closeAddProductModal = closeAddProductModal;
+    window.closeProviderModal = closeProviderModal;
+    window.addProvider = addProvider;
+    window.createNewProduct = createNewProduct;
+    window.saveDataToFile = saveDataToFile;
+    window.loadData = loadData;
+    window.exportToCSV = exportToCSV;
+    window.applyGlobalMargin = function() {
+      const margen = parseFloat(document.getElementById('margenGlobal').value) || 0;
+      if (margen <= 0) { alert('Por favor ingrese un margen válido mayor a 0'); return; }
+      document.querySelectorAll('#tableBody tr').forEach(tr=>{
+        const unidades = parseFloat(tr.querySelector('.unidades-input')?.value)||0;
+        const precioPaquete = parseFloat(tr.querySelector('.precio-paquete-input')?.value)||0;
+        if (unidades > 0 && precioPaquete > 0) {
+          const costoUnitario = precioPaquete / unidades;
+          const precioVentaConMargen = Math.round(costoUnitario * (1 + margen/100));
+          tr.querySelector('.precio-venta-input').value = precioVentaConMargen;
+          calculateRow(tr.querySelector('.precio-venta-input'));
+        }
+      });
+      alert(`Margen del ${margen}% aplicado a todos los productos`);
+      saveDataToLocalStorage();
+    };
+
+  </script>
+</body>
+</html>
