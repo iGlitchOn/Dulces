@@ -1,0 +1,17 @@
+:root{
+    --gap: 12px;
+    --accent: #0066cc;
+  }
+  body{ font-family: Inter, system-ui, Arial; padding:24px; background:#fafafa; color:#111; }
+  .container{ max-width:980px; margin:0 auto; }
+  .controls{ margin-bottom:12px; }
+  button{ background:var(--accent); color:white; border:none; padding:8px 12px; border-radius:6px; cursor:pointer; }
+  button:disabled{ opacity:0.6; cursor:default; }
+  .table-wrap{ overflow:auto; border:1px solid #eee; border-radius:6px; background:white; padding:8px; }
+  .price-table{ width:100%; border-collapse:collapse; table-layout:auto; }
+  .price-table th, .price-table td{ padding:10px; text-align:left; border-bottom:1px solid #f0f0f0; vertical-align:middle; }
+  .name-col{ width:50%; white-space:normal; }
+  .price-col{ width:120px; font-weight:600; color:#0b6; }
+  .source-col{ width:120px; color:#666; }
+  .link-col{ width:70px; }
+  .error{ color:#b00; margin-bottom:8px; }

@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Control de Inventario - Dulces</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📦 Control de Inventario - Dulces</h1>
+            <p>Sistema de gestión para reventa</p>
+        </div>
+
+        <div class="controls">
+            <button id="btnAdd" class="btn btn-add" aria-label="Agregar Producto">➕ Agregar Producto</button>
+            <button id="btnRecalc" class="btn btn-calculate" aria-label="Recalcular Todo">🔄 Recalcular Todo</button>
+            <button id="btnExportCSV" class="btn btn-export" aria-label="Exportar CSV">📊 Exportar CSV</button>
+            <button id="btnExportJSON" class="btn btn-export" aria-label="Exportar JSON">💾 Exportar JSON</button>
+            <button id="btnLoad" class="btn btn-load" aria-label="Cargar Datos">📂 Cargar Datos</button>
+            <button id="btnProviders" class="btn btn-provider" aria-label="Gestionar Proveedores">🏢 Gestionar Proveedores</button>
+
+            <input id="margenGlobal" type="number" value="30" min="1" step="0.1" title="Margen %" class="input-small">
+            <button id="btnApplyMargin" class="btn btn-apply-margin" aria-label="Aplicar Margen">Aplicar Margen</button>
+
+            <div class="sort-area" role="group" aria-label="Ordenar tabla">
+                <select id="sortCategory" title="Selecciona categoría para ordenar" class="input-medium">
+                    <option value="inversion">Inversión ($)</option>
+                    <option value="gananciaTotal">Ganancia Total ($)</option>
+                    <option value="proveedor">Proveedor</option>
+                    <option value="producto">Producto</option>
+                    <option value="unidades">UND/PAQ</option>
+                    <option value="precioPaquete">Precio Paquete ($)</option>
+                    <option value="precioVenta">Precio Venta ($)</option>
+                    <option value="margen">Margen %</option>
+                    <option value="stock">Stock Paquetes</option>
+                </select>
+                <button id="btnSortToggle" class="sort-arrow" title="Alternar orden">↓</button>
+            </div>
+
+            <select id="filterProveedor" title="Filtrar por proveedor" class="input-medium">
+                <option value="">Todos los proveedores</option>
+            </select>
+        </div>
+
+        <div class="summary" id="summaryArea">
+            <div class="summary-card">
+                <h3>Inversión Total</h3>
+                <div id="totalInversion" class="value">$0</div>
+            </div>
+            <div class="summary-card">
+                <h3>Ganancia Estimada</h3>
+                <div id="totalGanancia" class="value">$0</div>
+            </div>
+            <div class="summary-card">
+                <h3>Margen Promedio</h3>
+                <div id="margenPromedio" class="value">0.0%</div>
+            </div>
+            <div class="summary-card">
+                <h3>Productos en Stock</h3>
+                <div id="productosStock" class="value">0</div>
+            </div>
+        </div>
+
+        <div class="table-container">
+            <table id="inventoryTable" aria-labelledby="inventoryTable">
+                <thead>
+                    <tr>
+                        <th class="drag-col">☰</th>
+                        <th class="col-proveedor">Proveedor</th>
+                        <th class="col-producto">Producto</th>
+                        <th class="units-label">Unid/Paq</th>
+                        <th class="price-label">Precio Paquete</th>
+                        <th>Costo Unitario</th>
+                        <th class="price-label">Precio Venta Unit.</th>
+                        <th>Ganancia Unit.</th>
+                        <th>Margen %</th>
+                        <th>Stock Paquetes</th>
+                        <th class="price-label">Inversión</th>
+                        <th class="price-label">Ganancia Total</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                    <!-- filas inyectadas por JS -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="autoSaveIndicator" class="autosave">💾 Guardado automático</div>
+
+    <!-- Provider modal -->
+    <div id="providerModal" class="modal" aria-hidden="true">
+        <div class="modal-content">
+            <button class="modal-close" id="closeProviderModal" aria-label="Cerrar">&times;</button>
+            <h2>🏢 Gestionar Proveedores</h2>
+            <div class="modal-row">
+                <input id="newProviderName" placeholder="Nombre del proveedor" class="input-full">
+                <button id="addProviderBtn" class="btn btn-add">Agregar</button>
+            </div>
+            <div id="providerList" class="provider-list" aria-live="polite"></div>
+        </div>
+    </div>
+
+    <!-- Add product modal -->
+    <div id="addProductModal" class="modal" aria-hidden="true">
+        <div class="modal-content">
+            <button class="modal-close" id="closeAddProductModal" aria-label="Cerrar">&times;</button>
+            <h2>➕ Agregar Nuevo Producto</h2>
+            <div class="modal-body">
+                <label>Proveedor</label>
+                <select id="newProductProvider" class="input-full"></select>
+
+                <label>Nombre del Producto</label>
+                <input id="newProductName" placeholder="Nombre del producto" class="input-full">
+
+                <label>Link de Compra</label>
+                <input id="newProductLink" placeholder="https://..." class="input-full">
+
+                <div class="modal-row">
+                    <div class="modal-col">
+                        <label>Unidades por Paquete</label>
+                        <input id="newProductUnits" type="number" min="1" value="1" class="input-full">
+                    </div>
+                    <div class="modal-col">
+                        <label>Precio del Paquete ($)</label>
+                        <input id="newProductPrice" type="number" step="1" min="0" value="0" class="input-full">
+                    </div>
+                    <div class="modal-col">
+                        <label>Stock Inicial</label>
+                        <input id="newProductStock" type="number" min="0" value="0" class="input-full">
+                    </div>
+                </div>
+
+                <div class="modal-actions">
+                    <button id="createProductBtn" class="btn btn-add">Crear Producto</button>
+                    <button id="cancelCreateProductBtn" class="btn btn-calculate">Cancelar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

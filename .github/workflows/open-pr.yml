@@ -1,0 +1,38 @@
+name: Open PR from feature/frontend-and-scrapers
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feature/frontend-and-scrapers
+
+jobs:
+  create-pr:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          title: "Add React frontend and Express backend + scrapers for Dicoha and Mundo Dulces"
+          body: |
+            This PR adds a React frontend (Vite) and an Express backend with scrapers for Dicoha (https://dicoha.com.co/) and Mundo Dulces (https://mundodulces17.com).
+            
+            Files added:
+            - frontend/*
+            - backend/*
+            - README.md
+
+            Robots.txt summary:
+            - dicoha: User-agent: *  Disallow: /wp-admin/  Allow: /wp-admin/admin-ajax.php
+            - mundodulces17: User-agent: *  Disallow: /wp-content/uploads/...  Disallow: /wp-admin/  Allow: /wp-admin/admin-ajax.php  Sitemap: https://mundodulces17.com/wp-sitemap.xml
+
+            Checklist:
+            - [ ] Confirm scraping is allowed for the targeted paths and actions per robots.txt and terms of service.
+            - [ ] Adjust selectors in backend/scrapers/*.js.
+            - [ ] Add caching and rate-limiting before heavy use.
+          base: main
+          head: feature/frontend-and-scrapers

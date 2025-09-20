@@ -1,0 +1,107 @@
+{
+  "proveedores": [
+    "DICOHA",
+    "M. DULCES"
+  ],
+  "productos": [
+    {
+      "proveedor": "DICOHA",
+      "producto": "TIC TAC PASTILLITAS ADVENTURE",
+      "unidades": 12,
+      "precioPaquete": 24600,
+      "precioVenta": 0,
+      "stock": 1,
+      "link": ""
+    },
+    {
+      "proveedor": "DICOHA",
+      "producto": "CHICLE INDIVIDUAL HIPERACIDO",
+      "unidades": 50,
+      "precioPaquete": 11500,
+      "precioVenta": 0,
+      "stock": 0,
+      "link": ""
+    },
+    {
+      "proveedor": "M. DULCES",
+      "producto": "CHICLE ACIDOMETRO",
+      "unidades": 50,
+      "precioPaquete": 11700,
+      "precioVenta": 0,
+      "stock": 0,
+      "link": ""
+    },
+    {
+      "proveedor": "DICOHA",
+      "producto": "BARRA BON BON BUM",
+      "unidades": 24,
+      "precioPaquete": 8800,
+      "precioVenta": 0,
+      "stock": 0,
+      "link": ""
+    },
+    {
+      "proveedor": "DICOHA",
+      "producto": "ATOMOS REVOLCON",
+      "unidades": 50,
+      "precioPaquete": 9000,
+      "precioVenta": 0,
+      "stock": 0,
+      "link": ""
+    },
+    {
+      "proveedor": "DICOHA",
+      "producto": "BRIDGE INDIVIDUAL VAINILLA",
+      "unidades": 30,
+      "precioPaquete": 6100,
+      "precioVenta": 0,
+      "stock": 0,
+      "link": ""
+    },
+    {
+      "proveedor": "DICOHA",
+      "producto": "CHICLE AGOGO ÁTOMOS SURTIDO",
+      "unidades": 50,
+      "precioPaquete": 8000,
+      "precioVenta": 0,
+      "stock": 0,
+      "link": ""
+    },
+    {
+      "proveedor": "DICOHA",
+      "producto": "CANDYRANCH MORA",
+      "unidades": 24,
+      "precioPaquete": 8200,
+      "precioVenta": 0,
+      "stock": 0,
+      "link": ""
+    },
+    {
+      "proveedor": "M. DULCES",
+      "producto": "CIGARROS DE MENTA",
+      "unidades": 20,
+      "precioPaquete": 6200,
+      "precioVenta": 0,
+      "stock": 0,
+      "link": ""
+    },
+    {
+      "proveedor": "DICOHA",
+      "producto": "SPLOT ESPANTA OJOS",
+      "unidades": 24,
+      "precioPaquete": 4500,
+      "precioVenta": 0,
+      "stock": 0,
+      "link": ""
+    },
+    {
+      "proveedor": "M. DULCES",
+      "producto": "CHICLE SPLOT BOMBA ACIDO LINEA",
+      "unidades": 50,
+      "precioPaquete": 8500,
+      "precioVenta": 0,
+      "stock": 0,
+      "link": ""
+    }
+  ]
+}
